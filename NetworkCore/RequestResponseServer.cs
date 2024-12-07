@@ -4,12 +4,15 @@ using TopNetwork.Core.Defaults;
 
 namespace TopNetwork.Core
 {
+    public delegate void LogString(string message);
+
     public class RequestResponseServer : DefaultServer
     {
         // События
         public event Action<TopClient>? ClientConnected;
         public event Action<TopClient>? ClientDisconnected;
         public event Func<TopClient, Task>? ClientRejected;
+        public LogString? logger { get; set; }
 
         // Обработчики
         public Func<TopClient?, Task<bool>>? ShouldAcceptClient;
@@ -20,13 +23,11 @@ namespace TopNetwork.Core
             if (ServerHandlers == null)
                 throw new NullReferenceException($"Plz init server");
 
-            Console.WriteLine("Server started.");
             _ = AcceptClientsAsync(cancellationToken); // Запуск цикла приёма клиентов
         }
 
         protected override Task OnStopAsync()
         {
-            Console.WriteLine("Server stopped.");
             return Task.CompletedTask;
         }
 
@@ -134,7 +135,6 @@ namespace TopNetwork.Core
             if (ClientRejected != null)
                 await ClientRejected.Invoke(client);
 
-            Console.WriteLine("Client rejected.");
             client.Close();
         }
     }
