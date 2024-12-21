@@ -35,6 +35,6 @@ namespace ClientUltra
         {
             Console.WriteLine("Получили сообщение от сервера.");
             Console.WriteLine(msg.ToString());
-        }
+        }   
     }
 }

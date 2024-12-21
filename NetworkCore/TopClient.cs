@@ -5,133 +5,166 @@ using System.Net.Sockets;
 
 namespace TopNetwork.Core
 {
-    public class TopClient
+    public class TopClient : IEquatable<TopClient>
     {
         private TcpClient _client;
         private NetworkStream _stream;
         private readonly ConcurrentQueue<Message> _messageQueue = new();
-        private readonly object _eventLock = new();
-        private Action<Message>? _onAcceptedMessage;
-        private readonly SemaphoreSlim _streamSemaphore = new(1, 1); // Индивидуальный семафор для потоков клиента
+        private readonly SemaphoreSlim _streamSemaphore = new(1, 1);
+        private readonly object _stateLock = new();
 
+        private Action<Message>? _onMessageReceived;
         public event Action? OnDisconnected;
-        public TcpClient Client => _client;
-        public NetworkStream Stream => _stream;
 
-        public EndPoint? RemoteEndPoint => _client.Client.RemoteEndPoint;
-        public SemaphoreSlim StreamSemaphore => _streamSemaphore; // Доступ к семафору клиента
-        public Action<Message>? OnAcceptedMessage
+        public bool IsConnected => _client?.Connected ?? false;
+        public bool IsInitialized { get; private set; }
+        public EndPoint? RemoteEndPoint => _client?.Client.RemoteEndPoint;
+
+        public Action<Message>? OnMessageReceived
         {
-            get => _onAcceptedMessage;
+            get => _onMessageReceived;
             set
             {
-                lock (_eventLock)
+                lock (_stateLock)
                 {
-                    _onAcceptedMessage = value;
-
-                    // Если подписка появилась, обрабатываем сообщения из очереди
-                    if (_onAcceptedMessage != null)
+                    _onMessageReceived = value;
+                    if (_onMessageReceived != null)
                     {
-                        _ = ProcessQueuedMessages();
+                        Task.Run(ProcessQueuedMessages);
                     }
                 }
             }
         }
 
-        public TopClient(string ip, int port)
-        {
-            _client = new TcpClient(ip, port);
-            _stream = _client.GetStream();
-        }
+        public TopClient() { }
+
+        public TopClient(string ip, int port) => Initialize(ip, port);
 
         public TopClient(TcpClient client)
         {
             _client = client;
-            _stream = _client.GetStream();
+            _stream = client.GetStream();
+            IsInitialized = true;
         }
 
-        public async Task SendMessageAsync(Message msg)
+        public void Initialize(string ip, int port)
         {
-            await DeliveryService.SendMessageAsync(_stream, msg);
+            if (IsInitialized)
+                throw new InvalidOperationException("Client is already initialized.");
+
+            _client = new TcpClient(ip, port);
+            _stream = _client.GetStream();
+            IsInitialized = true;
         }
-        public void Close() => Disconnect();
-        public async Task StartListen(CancellationToken token)
+
+        public async Task SendMessageAsync(Message message, CancellationToken cancellationToken = default)
         {
+            if (!IsInitialized)
+                throw new InvalidOperationException("Client is not initialized.");
+
+            await _streamSemaphore.WaitAsync(cancellationToken);
             try
             {
-                while (!token.IsCancellationRequested)
+                await DeliveryService.SendMessageAsync(_stream, message);
+            }
+            finally
+            {
+                _streamSemaphore.Release();
+            }
+        }
+
+        public async Task StartListeningAsync(CancellationToken cancellationToken)
+        {
+            if (!IsInitialized)
+                throw new InvalidOperationException("Client is not initialized.");
+
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested && IsConnected)
                 {
-                    try
-                    {
-                        var msg = await DeliveryService.AcceptMessageAsync(this, token);
-                        EnqueueOrInvoke(msg);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Завершаем прослушивание при отмене
-                        break;
-                    }
-                    catch (IOException)
-                    {
-                        // Поток завершён, инициируем отключение
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Ошибка при получении сообщения: {ex.Message}");
-                        break;
-                    }
+                    var message = await DeliveryService.AcceptMessageAsync(this, cancellationToken);
+                    EnqueueMessage(message);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal operation on cancellation
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during message reception: {ex.Message}");
             }
             finally
             {
                 Disconnect();
             }
         }
+
         public void Disconnect()
         {
-            if (_client.Connected)
+            lock (_stateLock)
             {
+                if (!IsConnected)
+                    return;
+
                 try
                 {
-                    _stream.Close();
-                    _client.Close();
+                    _stream?.Close();
+                    _client?.Close();
+                    _stream?.Dispose();
+                    _client?.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Ошибка при закрытии клиента: {ex.Message}");
+                    Console.WriteLine($"Error during disconnect: {ex.Message}");
+                }
+                finally
+                {
+                    OnDisconnected?.Invoke();
+                    IsInitialized = false;
                 }
             }
-            _streamSemaphore.Dispose(); // Уничтожение семафора при отключении клиента
-            // Вызываем событие OnDisconnected
-            OnDisconnected?.Invoke();
         }
 
-        private void EnqueueOrInvoke(Message msg)
+        private void EnqueueMessage(Message message)
         {
-            lock (_eventLock)
+            lock (_stateLock)
             {
-                if (_onAcceptedMessage == null)
+                if (_onMessageReceived == null)
                 {
-                    // Если нет подписчиков, добавляем сообщение в очередь
-                    _messageQueue.Enqueue(msg);
+                    _messageQueue.Enqueue(message);
                 }
                 else
                 {
-                    // Если есть подписчики, проверяем статус клиента
-                    if (_client.Connected)
-                    {
-                        _ = Task.Run(() => _onAcceptedMessage?.Invoke(msg));
-                    }
+                    Task.Run(() => _onMessageReceived?.Invoke(message));
                 }
             }
         }
+
         private async Task ProcessQueuedMessages()
         {
-            while (_messageQueue.TryDequeue(out var msg))
+            while (_messageQueue.TryDequeue(out var message))
             {
-                await Task.Run(() => _onAcceptedMessage?.Invoke(msg));
+                await Task.Run(() => _onMessageReceived?.Invoke(message));
             }
         }
+
+        #region Equality Members
+
+        public override int GetHashCode() => _client?.Client?.RemoteEndPoint?.ToString()?.GetHashCode() ?? 0;
+
+        public override bool Equals(object? obj) => Equals(obj as TopClient);
+
+        public bool Equals(TopClient? other) =>
+            other != null &&
+            IsInitialized == other.IsInitialized &&
+            _client?.Client?.RemoteEndPoint?.Equals(other._client?.Client?.RemoteEndPoint) == true;
+
+        public static bool operator ==(TopClient? left, TopClient? right) =>
+            ReferenceEquals(left, right) || (left?.Equals(right) ?? false);
+
+        public static bool operator !=(TopClient? left, TopClient? right) => !(left == right);
+
+        #endregion
     }
 }
