@@ -4,7 +4,6 @@ namespace TopNetwork.Core
 {
     public class Message
     {
-        //к примеру Information, Error...
         public string MessageType { get; set; } = string.Empty; 
         public Dictionary<string, string> Headers { get; set; } = [];
         public string Payload { get; set; } = string.Empty;

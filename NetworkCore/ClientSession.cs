@@ -1,127 +1,133 @@
 ﻿
+using System.Collections.Concurrent;
+using System.Net;
+using TopNetwork.Core.RequestResponse;
+
 namespace TopNetwork.Core
 {
-    public abstract class ClientSession
+    public class ClientSession
     {
         private readonly TopClient _client;
-        private readonly LogString? _logger;
-        private readonly Func<TopClient, Task<Message?>>? _builderDisconnectMessage;
-        private readonly Func<TopClient, Message, Task<Message?>> _handleMessage;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
+        private readonly object _stateLock = new();
+        private readonly object _conditionsLock = new();
 
-        protected CancellationToken CancellationToken => _cancellationTokenSource.Token;
+        /// <summary> Обработка сообщения клиента -> Здесь ответ от сервера </summary>
+        public event Action<ClientSession, Message>? OnMessageProcessed;
+        public event Action<ClientSession>? OnSessionStarted;
+        public event Action<ClientSession>? OnSessionClosed;    
 
+        public SessionCloseConditionEvaluator ConditionEvaluator { get; set; } = new();
+        public RrServerHandlerBase MessageHandlers { get; set; }
+        public readonly ServiceRegistry ServerContext;
+
+        public LogString? logger;
         public bool IsRunning { get; private set; }
+        public bool IsClosed { get; private set; }
+        public EndPoint? RemoteEndPoint => _client.RemoteEndPoint;
+        public DateTime StartTime { get; private set; }
+        public int ProcessedMessagesCountAll => ProcessedMessagesCountOfType.Values.Sum();
+        public ConcurrentDictionary<string, int> ProcessedMessagesCountOfType { get; private set; }
 
-        protected ClientSession(
-            TopClient client,
-            LogString? logger,
-            Func<TopClient, Task<Message?>>? builderDisconnectMessage,
-            Func<TopClient, Message, Task<Message?>> handleMessage)
+        protected ClientSession(TopClient client, RrServerHandlerBase messageHandler, ServiceRegistry context)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
-            _logger = logger;
-            _builderDisconnectMessage = builderDisconnectMessage;
-            _handleMessage = handleMessage ?? throw new ArgumentNullException(nameof(handleMessage));
+            MessageHandlers = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+            _client.OnMessageReceived += HandleMessageAsync;
+            _client.OnDisconnected += HandleClientDisconnected;
+            ServerContext = context;
         }
 
-        public async Task StartAsync()
+        public virtual async Task StartAsync()
         {
             if (IsRunning)
                 throw new InvalidOperationException("Session is already running.");
 
             IsRunning = true;
+            StartTime = DateTime.UtcNow;
+            OnSessionStarted?.Invoke(this);
 
             try
             {
-                _logger?.Invoke($"Session started for client: {_client.RemoteEndPoint}");
-
-                _client.OnMessageReceived += async message =>
-                {
-                    if (message == null)
-                    {
-                        _logger?.Invoke($"Client {_client.RemoteEndPoint} sent a null message.");
-                        return;
-                    }
-
-                    try
-                    {
-                        var response = await _handleMessage(_client, message);
-                        if (response != null)
-                        {
-                            await _client.SendMessageAsync(response);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.Invoke($"Error handling message from {_client.RemoteEndPoint}: {ex.Message}");
-                    }
-                };
-
-                await _client.StartListen(async message =>
-                {
-                    if (message == null)
-                    {
-                        _logger?.Invoke($"Client {_client.RemoteEndPoint} sent a null message.");
-                        return;
-                    }
-
-                    try
-                    {
-                        var response = await _handleMessage(_client, message);
-                        if (response != null)
-                        {
-                            await _client.SendMessageAsync(response);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.Invoke($"Error handling message from {_client.RemoteEndPoint}: {ex.Message}");
-                    }
-                }, CancellationToken);
+                await _client.StartListeningAsync(_cancellationTokenSource.Token);
             }
             catch (OperationCanceledException)
             {
-                _logger?.Invoke($"Session cancelled for client: {_client.RemoteEndPoint}");
+                // Нормальное завершение
             }
             finally
             {
-                await DisconnectAsync();
+                CloseSession();
             }
         }
 
-        public async Task DisconnectAsync()
+        public virtual void CloseSession()
         {
-            if (!IsRunning)
-                return;
-
-            IsRunning = false;
-            _cancellationTokenSource.Cancel();
+            lock (_stateLock)
+            {
+                if (IsClosed) return;
+                IsClosed = true;
+            }
 
             try
             {
-                if (_builderDisconnectMessage != null)
+                _client.Disconnect();
+            }
+            catch (Exception ex)
+            {
+                OnError($"[{RemoteEndPoint}]: Error while closing session - {ex.Message}");
+            }
+            finally
+            {
+                IsRunning = false;
+                _cancellationTokenSource.Cancel();
+                OnSessionClosed?.Invoke(this);
+            }
+        }
+
+        private async Task HandleMessageAsync(Message message)
+        {
+            await CheckCloseConditions();
+
+            if (message == null) return;
+
+            try
+            {
+                if (ProcessedMessagesCountOfType.TryGetValue(message.MessageType, out int cnt))
+                    cnt++;
+                else
+                    ProcessedMessagesCountOfType[message.MessageType] = 1;
+
+                var response = await MessageHandlers.HandleMessage(_client, message);
+
+                if (response != null)
                 {
-                    var disconnectMessage = await _builderDisconnectMessage(_client);
-                    if (disconnectMessage != null)
-                    {
-                        await _client.SendMessageAsync(disconnectMessage);
-                    }
+                    await _client.SendMessageAsync(response);
+                    OnMessageProcessed?.Invoke(this, response);
                 }
             }
             catch (Exception ex)
             {
-                _logger?.Invoke($"Error sending disconnect message for {_client.RemoteEndPoint}: {ex.Message}");
-            }
-            finally
-            {
-                _client.Disconnect();
-                _cancellationTokenSource.Dispose();
-                _logger?.Invoke($"Session closed for client: {_client.RemoteEndPoint}");
+                OnError($"[{RemoteEndPoint}]: Error processing message - {ex.Message}");
             }
         }
 
-        protected abstract void OnSessionStarted();
-        protected abstract void OnSessionEnded();
+        private void HandleClientDisconnected()
+        {
+            OnError($"[{RemoteEndPoint}]: Client disconnected");
+            CloseSession();
+        }
+
+        protected async Task CheckCloseConditions()
+        {
+            if(await ConditionEvaluator.ShouldCloseAsync(this))
+                lock (_conditionsLock)
+                    CloseSession();
+        }
+
+        protected virtual void OnError(string errorMessage)
+        {
+            logger?.Invoke(errorMessage);
+        }
     }
 }

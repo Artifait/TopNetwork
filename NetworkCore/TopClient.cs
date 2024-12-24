@@ -7,60 +7,86 @@ namespace TopNetwork.Core
 {
     public class TopClient : IEquatable<TopClient>
     {
-        private TcpClient _client;
-        private NetworkStream _stream;
-        private readonly ConcurrentQueue<Message> _messageQueue = new();
+        private TcpClient? _client;
+        private NetworkStream? _stream;
         private readonly SemaphoreSlim _streamSemaphore = new(1, 1);
         private readonly object _stateLock = new();
+        private readonly ConcurrentQueue<Message> _messageQueue = new();
 
-        private Action<Message>? _onMessageReceived;
+        private CancellationTokenSource? _listeningCancellationTokenSource;
+
+        // Events
+        public event Func<Message, Task>? OnMessageReceived;
+        public event Action? OnConnected;
         public event Action? OnDisconnected;
+        public event Action? OnConnectionLost;
+        public event Action? OnListeningStarted;
+        public event Action? OnListeningStopped;
+        public event Action<Exception>? OnError; 
 
+        // Properties
         public bool IsConnected => _client?.Connected ?? false;
         public bool IsInitialized { get; private set; }
         public EndPoint? RemoteEndPoint => _client?.Client.RemoteEndPoint;
+        public NetworkStream? ReadStream => _stream;
+        public readonly SemaphoreSlim ReadSemaphore = new(1, 1);
 
-        public Action<Message>? OnMessageReceived
-        {
-            get => _onMessageReceived;
-            set
-            {
-                lock (_stateLock)
-                {
-                    _onMessageReceived = value;
-                    if (_onMessageReceived != null)
-                    {
-                        Task.Run(ProcessQueuedMessages);
-                    }
-                }
-            }
-        }
+        public bool HasPendingMessages => !_messageQueue.IsEmpty;
 
-        public TopClient() { }
-
-        public TopClient(string ip, int port) => Initialize(ip, port);
-
-        public TopClient(TcpClient client)
-        {
-            _client = client;
-            _stream = client.GetStream();
-            IsInitialized = true;
-        }
-
+        // Public Methods
         public void Initialize(string ip, int port)
         {
             if (IsInitialized)
                 throw new InvalidOperationException("Client is already initialized.");
 
-            _client = new TcpClient(ip, port);
+            _client = new TcpClient();
+            _client.Connect(ip, port);
             _stream = _client.GetStream();
             IsInitialized = true;
+
+            OnConnected?.Invoke();
+        }
+
+        public void Connect(TcpClient client)
+        {
+            if (IsInitialized)
+                throw new InvalidOperationException("Client is already initialized.");
+
+            _client = client;
+            _stream = client.GetStream();
+            IsInitialized = true;
+
+            OnConnected?.Invoke();
+        }
+
+        public void Disconnect()
+        {
+            lock (_stateLock)
+            {
+                if (!IsConnected)
+                    return;
+
+                try
+                {
+                    _listeningCancellationTokenSource?.Cancel();
+                    _stream?.Close();
+                    _client?.Close();
+                }
+                finally
+                {
+                    IsInitialized = false;
+                    OnDisconnected?.Invoke();
+                }
+            }
         }
 
         public async Task SendMessageAsync(Message message, CancellationToken cancellationToken = default)
         {
             if (!IsInitialized)
                 throw new InvalidOperationException("Client is not initialized.");
+
+            if (_stream == null)
+                throw new InvalidOperationException("Stream is not available.");
 
             await _streamSemaphore.WaitAsync(cancellationToken);
             try
@@ -73,98 +99,71 @@ namespace TopNetwork.Core
             }
         }
 
-        public async Task StartListeningAsync(CancellationToken cancellationToken)
+        public async Task StartListeningAsync(CancellationToken cancellationToken = default)
         {
             if (!IsInitialized)
                 throw new InvalidOperationException("Client is not initialized.");
 
+            _listeningCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            OnListeningStarted?.Invoke();
+
             try
             {
-                while (!cancellationToken.IsCancellationRequested && IsConnected)
+                while (!_listeningCancellationTokenSource.Token.IsCancellationRequested && IsConnected)
                 {
-                    var message = await DeliveryService.AcceptMessageAsync(this, cancellationToken);
-                    EnqueueMessage(message);
+                    try
+                    {
+                        var message = await DeliveryService.AcceptMessageAsync(this, _listeningCancellationTokenSource.Token);
+                        _messageQueue.Enqueue(message);
+
+                        if (OnMessageReceived != null)
+                            await OnMessageReceived.Invoke(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        OnError?.Invoke(ex);
+                        break;
+                    }
                 }
             }
             catch (OperationCanceledException)
             {
                 // Normal operation on cancellation
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during message reception: {ex.Message}");
-            }
             finally
             {
-                Disconnect();
+                OnConnectionLost?.Invoke();
+                StopListening();
             }
         }
 
-        public void Disconnect()
+        public void StopListening()
         {
-            lock (_stateLock)
-            {
-                if (!IsConnected)
-                    return;
-
-                try
-                {
-                    _stream?.Close();
-                    _client?.Close();
-                    _stream?.Dispose();
-                    _client?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during disconnect: {ex.Message}");
-                }
-                finally
-                {
-                    OnDisconnected?.Invoke();
-                    IsInitialized = false;
-                }
-            }
+            _listeningCancellationTokenSource?.Cancel();
+            OnListeningStopped?.Invoke();
         }
 
-        private void EnqueueMessage(Message message)
+        public bool TryDequeueMessage(out Message? message)
         {
-            lock (_stateLock)
-            {
-                if (_onMessageReceived == null)
-                {
-                    _messageQueue.Enqueue(message);
-                }
-                else
-                {
-                    Task.Run(() => _onMessageReceived?.Invoke(message));
-                }
-            }
+            return _messageQueue.TryDequeue(out message);
         }
 
-        private async Task ProcessQueuedMessages()
-        {
-            while (_messageQueue.TryDequeue(out var message))
-            {
-                await Task.Run(() => _onMessageReceived?.Invoke(message));
-            }
-        }
+        // Equality Members
+        public override int GetHashCode() 
+            => RemoteEndPoint?.ToString()?.GetHashCode() ?? 0;
 
-        #region Equality Members
-
-        public override int GetHashCode() => _client?.Client?.RemoteEndPoint?.ToString()?.GetHashCode() ?? 0;
-
-        public override bool Equals(object? obj) => Equals(obj as TopClient);
+        public override bool Equals(object? obj) 
+            => Equals(obj as TopClient);
 
         public bool Equals(TopClient? other) =>
             other != null &&
             IsInitialized == other.IsInitialized &&
-            _client?.Client?.RemoteEndPoint?.Equals(other._client?.Client?.RemoteEndPoint) == true;
+            RemoteEndPoint?.Equals(other.RemoteEndPoint) == true;
 
-        public static bool operator ==(TopClient? left, TopClient? right) =>
-            ReferenceEquals(left, right) || (left?.Equals(right) ?? false);
+        public static bool operator ==(TopClient? left, TopClient? right) 
+            => ReferenceEquals(left, right) || (left?.Equals(right) ?? false);
 
-        public static bool operator !=(TopClient? left, TopClient? right) => !(left == right);
-
-        #endregion
+        public static bool operator !=(TopClient? left, TopClient? right) 
+            => !(left == right);
     }
 }
