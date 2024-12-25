@@ -1,5 +1,7 @@
 ﻿
-namespace TopNetwork.MessageBuilderFactory
+using TopNetwork.Core;
+
+namespace TopNetwork.MessageBuilderService
 {
     public class AuthenticationRequest : IRequest
     {
@@ -30,6 +32,7 @@ namespace TopNetwork.MessageBuilderFactory
     {
         private string _login;
         private string _password;
+        private bool? _isAuthenticated = null;
 
         public AuthenticationMessageBuilder SetLogin(string login)
         {
@@ -43,20 +46,40 @@ namespace TopNetwork.MessageBuilderFactory
             return this;
         }
 
-        public AuthenticationRequest BuildRequest()
+        public AuthenticationMessageBuilder SetAuthentication(bool authentication)
         {
-            return new AuthenticationRequest(_login, _password);
+            _isAuthenticated = authentication;
+            return this;
         }
 
-        public AuthenticationResponse? ParseResponse(string rawResponse)
+        public Message BuildRequest()
         {
-            // Пример парсинга строки ответа
-            if (rawResponse == "OK")
-                return new AuthenticationResponse(true);
-            else if (rawResponse == "FAIL")
-                return new AuthenticationResponse(false);
+            ArgumentException.ThrowIfNullOrWhiteSpace(_login);
+            ArgumentException.ThrowIfNullOrWhiteSpace(_password);
 
-            return null; // Некорректный ответ
+            return new()
+            {
+                Payload = $"{_login}:{_password}"
+            };
+        }
+        public Message BuildResponse()
+        {
+            ArgumentNullException.ThrowIfNull(_isAuthenticated);
+
+            return new()
+            {
+                Headers = { { , } }
+            };
+        }
+
+        public AuthenticationRequest ParseRequest(Message msg)
+        {
+            throw new NotImplementedException();
+        }
+
+        public AuthenticationResponse ParseResponse(Message msg)
+        {
+            throw new NotImplementedException();
         }
     }
 }

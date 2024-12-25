@@ -1,18 +1,15 @@
 ﻿
 using TopNetwork.Core;
 
-namespace TopNetwork.MessageBuilderFactory
+namespace TopNetwork.MessageBuilderService
 {
     public interface IRequest
     {
         string MessageType { get; }
-        Message BuildMessage();
     }
-
     public interface IResponse
     {
         string MessageType { get; }
-        Message BuildMessage();
     }
 
     public interface IMessageBuilder<TRequest, TResponse>
