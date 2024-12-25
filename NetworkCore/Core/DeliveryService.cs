@@ -1,7 +1,7 @@
 ﻿
 using System.Net.Sockets;
 
-namespace TopNetwork
+namespace TopNetwork.Core
 {
     public static class DeliveryService
     {

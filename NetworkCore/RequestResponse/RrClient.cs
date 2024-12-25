@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Concurrent;
+using TopNetwork.Core;
 
 namespace TopNetwork.RequestResponse
 {

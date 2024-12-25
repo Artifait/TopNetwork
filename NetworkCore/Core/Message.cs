@@ -1,10 +1,10 @@
 ﻿using System.Text;
 
-namespace TopNetwork
+namespace TopNetwork.Core
 {
     public class Message
     {
-        public string MessageType { get; set; } = string.Empty; 
+        public string MessageType { get; set; } = string.Empty;
         public Dictionary<string, string> Headers { get; set; } = [];
         public string Payload { get; set; } = string.Empty;
 
@@ -87,7 +87,7 @@ namespace TopNetwork
             StringBuilder sb = new();
             sb.Clear();
 
-            if(!string.IsNullOrWhiteSpace(MessageType))
+            if (!string.IsNullOrWhiteSpace(MessageType))
                 sb.AppendLine($"MessageType: {MessageType}");
 
             if (Headers != null && Headers.Count > 0)
@@ -100,12 +100,12 @@ namespace TopNetwork
                 sb.AppendLine("}");
             }
 
-            if(!string.IsNullOrWhiteSpace(Payload))
+            if (!string.IsNullOrWhiteSpace(Payload))
                 sb.AppendLine($"Payload: {Payload}\n");
 
             string result = sb.ToString();
 
-            if(string.IsNullOrWhiteSpace(result))
+            if (string.IsNullOrWhiteSpace(result))
                 result = "Пустое сообщение.";
 
             return result;

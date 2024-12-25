@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 
-namespace TopNetwork
+namespace TopNetwork.Core
 {
     /// <summary>
     /// Регистр сервисов, чтоб не плодить статики

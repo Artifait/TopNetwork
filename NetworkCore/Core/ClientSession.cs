@@ -4,7 +4,7 @@ using System.Net;
 using TopNetwork.Conditions;
 using TopNetwork.RequestResponse;
 
-namespace TopNetwork
+namespace TopNetwork.Core
 {
     public class ClientSession
     {
@@ -21,10 +21,10 @@ namespace TopNetwork
         public SessionCloseConditionEvaluator CloseConditionEvaluator { get; set; } = new();
         public SessionOpenConditionEvaluator OpenConditionEvaluator { get; set; } = new();
         public RrServerHandlerBase MessageHandlers { get; set; }
-        public readonly ServiceRegistry ServerContext;  
+        public readonly ServiceRegistry ServerContext;
 
         public LogString? logger;
-        public bool IsRunning { get; private set; } 
+        public bool IsRunning { get; private set; }
         public bool IsClosed { get; private set; }
         public EndPoint? RemoteEndPoint => _client.RemoteEndPoint;
         public DateTime StartTime { get; private set; }
@@ -107,7 +107,7 @@ namespace TopNetwork
 
                 if (response != null)
                 {
-                    if(message.Headers.TryGetValue("MessageId", out var msgId))
+                    if (message.Headers.TryGetValue("MessageId", out var msgId))
                         response.Headers["ResponseTo"] = msgId;
 
                     await _client.SendMessageAsync(response);

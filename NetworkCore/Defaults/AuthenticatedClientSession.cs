@@ -1,4 +1,5 @@
 ﻿
+using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 
 namespace TopNetwork.Defaults

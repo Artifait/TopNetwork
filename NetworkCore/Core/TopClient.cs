@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace TopNetwork
+namespace TopNetwork.Core
 {
     public class TopClient : IEquatable<TopClient>
     {
@@ -22,7 +22,7 @@ namespace TopNetwork
         public event Action? OnConnectionLost;
         public event Action? OnListeningStarted;
         public event Action? OnListeningStopped;
-        public event Action<Exception>? OnError; 
+        public event Action<Exception>? OnError;
 
         // Properties
         public bool IsConnected => _client?.Connected ?? false;
@@ -149,10 +149,10 @@ namespace TopNetwork
         }
 
         // Equality Members
-        public override int GetHashCode() 
+        public override int GetHashCode()
             => RemoteEndPoint?.ToString()?.GetHashCode() ?? 0;
 
-        public override bool Equals(object? obj) 
+        public override bool Equals(object? obj)
             => Equals(obj as TopClient);
 
         public bool Equals(TopClient? other) =>
@@ -160,10 +160,10 @@ namespace TopNetwork
             IsInitialized == other.IsInitialized &&
             RemoteEndPoint?.Equals(other.RemoteEndPoint) == true;
 
-        public static bool operator ==(TopClient? left, TopClient? right) 
+        public static bool operator ==(TopClient? left, TopClient? right)
             => ReferenceEquals(left, right) || (left?.Equals(right) ?? false);
 
-        public static bool operator !=(TopClient? left, TopClient? right) 
+        public static bool operator !=(TopClient? left, TopClient? right)
             => !(left == right);
     }
 }

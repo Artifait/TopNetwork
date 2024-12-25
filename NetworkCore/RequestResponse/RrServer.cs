@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using TopNetwork.Core;
 
 namespace TopNetwork.RequestResponse
 {
