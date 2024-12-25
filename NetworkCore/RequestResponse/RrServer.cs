@@ -6,8 +6,10 @@ using System.Net.Sockets;
 namespace TopNetwork.Core.RequestResponse
 {
     public delegate void LogString(string message);
-
-    public class RequestResponseServer
+    /// <summary>
+    /// Rr -> Request Response Server
+    /// </summary>
+    public class RrServer
     {
         private readonly TcpListener _listener;
         private readonly ConcurrentDictionary<Guid, ClientSession> _sessions = new();
@@ -22,7 +24,7 @@ namespace TopNetwork.Core.RequestResponse
 
         public LogString? Logger { get; set; }
 
-        public RequestResponseServer(IPEndPoint endPoint, Func<TopClient, ServiceRegistry, ClientSession> sessionFactory)
+        public RrServer(IPEndPoint endPoint, Func<TopClient, ServiceRegistry, ClientSession> sessionFactory)
         {
             _listener = new TcpListener(endPoint ?? throw new ArgumentNullException(nameof(endPoint)));
             _sessionFactory = sessionFactory ?? throw new ArgumentNullException(nameof(sessionFactory));

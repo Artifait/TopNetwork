@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 using System.Net;
+using TopNetwork.Core.Conditions;
 using TopNetwork.Core.RequestResponse;
 
 namespace TopNetwork.Core
@@ -15,14 +16,15 @@ namespace TopNetwork.Core
         /// <summary> Обработка сообщения клиента -> Здесь ответ от сервера </summary>
         public event Action<ClientSession, Message>? OnMessageProcessed;
         public event Action<ClientSession>? OnSessionStarted;
-        public event Action<ClientSession>? OnSessionClosed;    
+        public event Action<ClientSession>? OnSessionClosed;
 
-        public SessionCloseConditionEvaluator ConditionEvaluator { get; set; } = new();
+        public SessionCloseConditionEvaluator CloseConditionEvaluator { get; set; } = new();
+        public SessionOpenConditionEvaluator OpenConditionEvaluator { get; set; } = new();
         public RrServerHandlerBase MessageHandlers { get; set; }
-        public readonly ServiceRegistry ServerContext;
+        public readonly ServiceRegistry ServerContext;  
 
         public LogString? logger;
-        public bool IsRunning { get; private set; }
+        public bool IsRunning { get; private set; } 
         public bool IsClosed { get; private set; }
         public EndPoint? RemoteEndPoint => _client.RemoteEndPoint;
         public DateTime StartTime { get; private set; }
@@ -40,6 +42,9 @@ namespace TopNetwork.Core
 
         public virtual async Task StartAsync()
         {
+            if (!OpenConditionEvaluator.ShouldOpen(this))
+                return;
+
             if (IsRunning)
                 throw new InvalidOperationException("Session is already running.");
 
@@ -102,6 +107,9 @@ namespace TopNetwork.Core
 
                 if (response != null)
                 {
+                    if(message.Headers.TryGetValue("MessageId", out var msgId))
+                        response.Headers["ResponseTo"] = msgId;
+
                     await _client.SendMessageAsync(response);
                     OnMessageProcessed?.Invoke(this, response);
                 }
@@ -120,9 +128,11 @@ namespace TopNetwork.Core
 
         protected async Task CheckCloseConditions()
         {
-            if(await ConditionEvaluator.ShouldCloseAsync(this))
+            if (await CloseConditionEvaluator.ShouldCloseAsync(this))
+            {
                 lock (_conditionsLock)
                     CloseSession();
+            }
         }
 
         protected virtual void OnError(string errorMessage)
