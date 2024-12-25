@@ -1,7 +1,7 @@
 ﻿
 using System.Text.Json;
 
-namespace TopNetwork.Core.Services
+namespace TopNetwork.Services
 {
     // Интерфейс для репозитория пользователей
     public interface IUserRepository

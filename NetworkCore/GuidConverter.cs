@@ -1,5 +1,5 @@
 ﻿
-namespace TopNetwork.Core
+namespace TopNetwork
 {
     public static class GuidConverter
     {

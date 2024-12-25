@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace TopNetwork.Core.RequestResponse
+namespace TopNetwork.RequestResponse
 {
     public delegate void LogString(string message);
     /// <summary>

@@ -1,4 +1,5 @@
-﻿namespace TopNetwork.Core.Conditions
+﻿
+namespace TopNetwork.Conditions
 {
     public class SessionCloseConditionEvaluator : ConditionEvaluator<ClientSession>
     {

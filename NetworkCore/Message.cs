@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace TopNetwork.Core
+namespace TopNetwork
 {
     public class Message
     {

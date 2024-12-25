@@ -1,5 +1,5 @@
 ﻿
-namespace TopNetwork.Core.Conditions
+namespace TopNetwork.Conditions
 {
     public interface ICondition<T>
     {

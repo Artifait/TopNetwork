@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerUltra", "ServerUltra.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientUltra", "ClientUltra\ClientUltra.csproj", "{C0F342C7-8907-408D-870A-C4DB57D9B7A6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopNetwork.Core", "NetworkCore\TopNetwork.Core.csproj", "{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopNetwork", "NetworkCore\TopNetwork.csproj", "{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

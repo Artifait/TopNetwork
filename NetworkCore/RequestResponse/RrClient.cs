@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 
-namespace TopNetwork.Core.RequestResponse
+namespace TopNetwork.RequestResponse
 {
     /// <summary>
     /// Rr -> Request Response Client

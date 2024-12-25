@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 
-namespace TopNetwork.Core.Services
+namespace TopNetwork.Services
 {
     // Сервис для управления аутентификацией
     public class AuthenticationService

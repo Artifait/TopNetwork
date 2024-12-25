@@ -1,7 +1,7 @@
 ﻿
-using TopNetwork.Core.RequestResponse;
+using TopNetwork.RequestResponse;
 
-namespace TopNetwork.Core.Defaults
+namespace TopNetwork.Defaults
 {
     public class AuthenticatedClientSession : ClientSession
     {

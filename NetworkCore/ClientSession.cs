@@ -1,10 +1,10 @@
 ﻿
 using System.Collections.Concurrent;
 using System.Net;
-using TopNetwork.Core.Conditions;
-using TopNetwork.Core.RequestResponse;
+using TopNetwork.Conditions;
+using TopNetwork.RequestResponse;
 
-namespace TopNetwork.Core
+namespace TopNetwork
 {
     public class ClientSession
     {

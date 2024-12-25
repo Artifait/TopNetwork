@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace TopNetwork.Core
+namespace TopNetwork
 {
     public class TopClient : IEquatable<TopClient>
     {
