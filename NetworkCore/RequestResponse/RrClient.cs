@@ -12,7 +12,6 @@ namespace TopNetwork.RequestResponse
         private readonly TopClient _topClient;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _pendingResponses = new();
 
-        public event Func<Message, Task>? OnMessageReceived;
         public RrClientHandlerBase Handler { get; private set; }
         public bool IsActive => _topClient?.IsConnected ?? false;
 
@@ -85,15 +84,15 @@ namespace TopNetwork.RequestResponse
                     {
                         await _topClient.SendMessageAsync(response);
                     }
-
-                    // Уведомление глобальных слушателей
-                    if (OnMessageReceived != null)
-                    {
-                        await OnMessageReceived.Invoke(message);
-                    }
                 }
             }
             catch { }
         }
     }
 }
+
+/*
+RrClient client = new();
+client.Connect(sever);
+var response = await client.SendMessage(Request);
+*/
