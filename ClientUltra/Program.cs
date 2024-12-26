@@ -1,5 +1,6 @@
 ﻿
 using TopNetwork.Core;
+using TopNetwork.RequestResponse;
 
 namespace ClientUltra
 {
@@ -10,11 +11,25 @@ namespace ClientUltra
         {
             string serverIp = "127.0.0.1";
             int port = 5335;
-            CancellationTokenSource cts = new();
 
-            TopClient client = new(serverIp, port);
-            client.OnAcceptedMessage += OnMessageFromServer;
-            _ = client.StartListen(cts.Token);
+            TopClient _client = new();
+            _client.Connect(new System.Net.Sockets.TcpClient(serverIp, port));
+
+            RrClientHandlerBase _handlers = new();
+            _handlers.AddHandlerForMessageType("Errore",
+                async (Message msg) => {
+                    Console.WriteLine(msg.ToString());
+                    return null;
+                });
+            _handlers.AddHandlerForMessageType("Response",
+                async (Message msg) =>
+                {
+                    Console.WriteLine(msg.ToString());
+                    return null;
+                });
+
+
+            RrClient client = new(_client, _handlers);
             Message msg = new()
             {
                 MessageType = "Text"
@@ -25,16 +40,11 @@ namespace ClientUltra
                 if (Console.ReadKey(true).KeyChar != 'a')
                 {
                     msg.Payload = $"Сообщение №{countMsgSended++}";
-                    await client.SendMessageAsync(msg);
+                    var response = await client.SendMessageWithResponseAsync(msg);
+                    Console.WriteLine($"Ответ от сервера:\n{response}");
                 }
                 else break;
             }
         }
-        
-        private static void OnMessageFromServer(Message msg)
-        {
-            Console.WriteLine("Получили сообщение от сервера.");
-            Console.WriteLine(msg.ToString());
-        }   
     }
 }

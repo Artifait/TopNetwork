@@ -1,72 +1,29 @@
 ﻿
 using System.Net;
 using TopNetwork.Core;
-using Newtonsoft.Json.Linq;
+using TopNetwork.RequestResponse;
 
 namespace ServerUltra
 {
-    internal class Program
+    public class TextSession : ClientSession
     {
-
-        public static class CurrencyConverter
+        protected TextSession(TopClient client, RrServerHandlerBase messageHandler, ServiceRegistry context) : base(client, messageHandler, context)
         {
-            public enum CurrencyType
-            {
-                USD,
-                RUB,
-                EUR
-            }
-
-            public static async Task<double?> GetExchangeRate(CurrencyType fromCurrency, CurrencyType toCurrency)
-            {
-                using var httpClient = new HttpClient();
-
-                try
-                {
-                    string apiUrl = "https://api.exchangerate-api.com/v4/latest/" + Enum.GetName(typeof(CurrencyType), fromCurrency);  // Бесплатный API
-                    string response = await httpClient.GetStringAsync(apiUrl);
-                    JObject data = JObject.Parse(response);
-                    return data["rates"]?[Enum.GetName(typeof(CurrencyType), toCurrency)]?.ToObject<double>();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Ошибка при получении курса: {ex.Message}");
-                    return null;
-                }
-            }
-            public static async Task<double?> GetExchangeRate(string fromCurrency, string toCurrency)
-            {
-                using var httpClient = new HttpClient();
-
-                try
-                {
-                    string apiUrl = "https://api.exchangerate-api.com/v4/latest/" + fromCurrency;  // Бесплатный API
-                    string response = await httpClient.GetStringAsync(apiUrl);
-                    JObject data = JObject.Parse(response);
-                    return data["rates"]?[toCurrency]?.ToObject<double>();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Ошибка при получении курса: {ex.Message}");
-                    return null;
-                }
-            }
         }
 
-
+        public static ClientSession SessionFactory(TopClient client, ServiceRegistry context)
+        {
+            
+        }
+    }
+    internal class Program
+    {
         static async Task Main()
         {
             string serverIp = "127.0.0.1";
             int port = 5335;
 
-            var server = new RequestResponseServer
-            {
-                ShouldAcceptClient = async client =>
-                {
-                    await Console.Out.WriteLineAsync("Checking if client should be accepted...");
-                    return client != null;
-                }
-            };
+            RrServer server = new(new IPEndPoint(IPAddress.Parse(serverIp), port), )
 
             server.ClientConnected += client =>
             {

@@ -90,9 +90,3 @@ namespace TopNetwork.RequestResponse
         }
     }
 }
-
-/*
-RrClient client = new();
-client.Connect(sever);
-var response = await client.SendMessage(Request);
-*/

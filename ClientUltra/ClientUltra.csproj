@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NetworkCore\TopNetwork.Core.csproj" />
+    <ProjectReference Include="..\NetworkCore\TopNetwork.csproj" />
   </ItemGroup>
 
 </Project>

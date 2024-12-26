@@ -47,7 +47,7 @@ namespace TopNetwork.Services
             lock (_locker)
             {
                 if (!File.Exists(_filePath))
-                    return new Dictionary<string, string>();
+                    return [];
 
                 var json = File.ReadAllText(_filePath);
                 return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? [];
