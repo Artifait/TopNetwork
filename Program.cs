@@ -1,6 +1,5 @@
 ﻿
 using System.Net;
-using System.Threading.Channels;
 using TopNetwork.Core;
 using TopNetwork.RequestResponse;
 using TopNetwork.Services.MessageBuilder;
@@ -10,9 +9,14 @@ namespace ServerUltra
     internal class Program
     {
         private static readonly RrServerHandlerBase _handlers = new RrServerHandlerBase()
-            .AddHandlerForMessageType("Text", async (client, msg) => {
+            .AddHandlerForMessageType("Text", async (client, msg, context) => {
                 if(msg.Payload == "5")
-                    return new ErroreMessageBuilder().SetPayload("фуу 5").BuildMsg();
+                {
+                    return context
+                        .Get<MessageBuilderService>()!
+                        .BuildMessage<ErroreMessageBuilder, ErroreData>(
+                            builder => builder.SetPayload("ABAAABA"));
+                }
 
                 return new Message()
                 {
@@ -22,7 +26,7 @@ namespace ServerUltra
             });
 
         public static ClientSession SessionFactory(TopClient client, ServiceRegistry context)
-            => new ClientSession(client, _handlers, context);
+            => new ClientSession(client, _handlers, context) { logger = Console.WriteLine };
 
         static async Task Main()
         {
@@ -33,6 +37,9 @@ namespace ServerUltra
             {
                 Logger = Console.WriteLine
             };
+            server.RegisterService(
+                new MessageBuilderService()
+                    .Register(() => new ErroreMessageBuilder()));
 
             _ = server.StartAsync();
 

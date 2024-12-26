@@ -23,7 +23,7 @@ namespace TopNetwork.RequestResponse
             return null;
         }
 
-        public void AddHandlerForMessageType(string type, Func<Message, Task<Message?>> handler)
+        public RrClientHandlerBase AddHandlerForMessageType(string type, Func<Message, Task<Message?>> handler)
         {
             if (handler == null)
                 throw new ArgumentNullException(nameof(handler));
@@ -35,6 +35,7 @@ namespace TopNetwork.RequestResponse
                 throw new ArgumentException("Тип сообщения не может быть пустым.");
 
             HandlerOfMessageType[type] = handler;
+            return this;
         }
 
         public void Clear() => HandlerOfMessageType.Clear();

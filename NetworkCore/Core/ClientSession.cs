@@ -103,7 +103,7 @@ namespace TopNetwork.Core
                 else
                     ProcessedMessagesCountOfType[message.MessageType] = 1;
 
-                var response = await MessageHandlers.HandleMessage(_client, message);
+                var response = await MessageHandlers.HandleMessage(_client, message, ServerContext);
 
                 if (response != null)
                 {
