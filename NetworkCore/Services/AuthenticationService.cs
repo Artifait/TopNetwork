@@ -31,37 +31,37 @@ namespace TopNetwork.Services
             return false;
         }
 
-        public async Task<Message?> HandleAuthenticationRequest(TopClient client, Message message)
-        {
-            var credentials = message.Payload.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (credentials.Length != 2)
-                return CurrencyMsgBuilder.CreateAuthenticationResult(false, "Неверный формат данных. Используйте: '<LOGIN> <PASSWORD>'");
+        //public async Task<Message?> HandleAuthenticationRequest(TopClient client, Message message)
+        //{
+        //    var credentials = message.Payload.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        //    if (credentials.Length != 2)
+        //        return CurrencyMsgBuilder.CreateAuthenticationResult(false, "Неверный формат данных. Используйте: '<LOGIN> <PASSWORD>'");
 
-            var (login, password) = (credentials[0], credentials[1]);
-            var users = _userService.GetAllUsers();
+        //    var (login, password) = (credentials[0], credentials[1]);
+        //    var users = _userService.GetAllUsers();
 
-            if (users.TryGetValue(login, out var storedPassword) && storedPassword == password)
-            {
-                _authenticatedClients[client] = (login, DateTime.Now);
-                return CurrencyMsgBuilder.CreateAuthenticationResult(true, "Аутентификация успешна");
-            }
+        //    if (users.TryGetValue(login, out var storedPassword) && storedPassword == password)
+        //    {
+        //        _authenticatedClients[client] = (login, DateTime.Now);
+        //        return CurrencyMsgBuilder.CreateAuthenticationResult(true, "Аутентификация успешна");
+        //    }
 
-            return CurrencyMsgBuilder.CreateAuthenticationResult(false, "Неверный логин или пароль.");
-        }
+        //    return CurrencyMsgBuilder.CreateAuthenticationResult(false, "Неверный логин или пароль.");
+        //}
 
-        public async Task<Message?> HandleCloseSessionRequest(TopClient client)
-        {
-            _authenticatedClients.TryRemove(client, out _);
-            client.Close();
-            return null;
-        }
+        //public async Task<Message?> HandleCloseSessionRequest(TopClient client)
+        //{
+        //    _authenticatedClients.TryRemove(client, out _);
+        //    client.Close();
+        //    return null;
+        //}
 
-        public async Task VerifyAllAuthenticatedConnections()
-        {
-            foreach (var client in _authenticatedClients.Keys)
-            {
-                await VerifyAuthenticatedConnection(client);
-            }
-        }
+        //public async Task VerifyAllAuthenticatedConnections()
+        //{
+        //    foreach (var client in _authenticatedClients.Keys)
+        //    {
+        //        await VerifyAuthenticatedConnection(client);
+        //    }
+        //}
     }
 }

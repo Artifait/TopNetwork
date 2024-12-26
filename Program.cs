@@ -1,59 +1,45 @@
 ﻿
 using System.Net;
+using System.Threading.Channels;
 using TopNetwork.Core;
 using TopNetwork.RequestResponse;
+using TopNetwork.Services.MessageBuilder;
 
 namespace ServerUltra
 {
-    public class TextSession : ClientSession
-    {
-        protected TextSession(TopClient client, RrServerHandlerBase messageHandler, ServiceRegistry context) : base(client, messageHandler, context)
-        {
-        }
-
-        public static ClientSession SessionFactory(TopClient client, ServiceRegistry context)
-        {
-            
-        }
-    }
     internal class Program
     {
+        private static readonly RrServerHandlerBase _handlers = new RrServerHandlerBase()
+            .AddHandlerForMessageType("Text", async (client, msg) => {
+                if(msg.Payload == "5")
+                    return new ErroreMessageBuilder().SetPayload("фуу 5").BuildMsg();
+
+                return new Message()
+                {
+                    MessageType = "Response",
+                    Payload = $"Response from server on: {msg.Payload}."
+                };
+            });
+
+        public static ClientSession SessionFactory(TopClient client, ServiceRegistry context)
+            => new ClientSession(client, _handlers, context);
+
         static async Task Main()
         {
             string serverIp = "127.0.0.1";
             int port = 5335;
 
-            RrServer server = new(new IPEndPoint(IPAddress.Parse(serverIp), port), )
-
-            server.ClientConnected += client =>
+            RrServer server = new(new IPEndPoint(IPAddress.Parse(serverIp), port), SessionFactory)
             {
-                Console.WriteLine($"Client connected: {client.RemoteEndPoint}");
+                Logger = Console.WriteLine
             };
 
-            server.ClientDisconnected += client =>
-            {
-                Console.WriteLine($"Client disconnected: {client.RemoteEndPoint}");
-            };
+            _ = server.StartAsync();
 
-            server.ClientRejected += async client =>
-            {
-                await Console.Out.WriteLineAsync($"Client rejected: {client.RemoteEndPoint}");
-            };
-
-            server.Init(IPAddress.Parse(serverIp), port);
-
-            server.ServerHandlers.AddHandlerForMessageType("Text", async (client, message) =>
-            {
-                await Console.Out.WriteLineAsync($"Message received from {client.RemoteEndPoint}\n{message}");
-                return new Message { Payload = "Response from server" };
-            });
-            server.ServerHandlers.SetDefaultHandler(async (client, message) => new Message { Payload = "Мы не смогли обработать ваш запрос..." });
-            
-            await server.Start();
             await Console.Out.WriteLineAsync("Чтоб остановить сервер, нажмите любую кнопку...");
             Console.ReadKey(true);
 
-            await server.Stop();
+            await server.StopAsync();
         }
     }
 }

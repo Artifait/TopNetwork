@@ -29,9 +29,9 @@ namespace TopNetwork.Core
         public EndPoint? RemoteEndPoint => _client.RemoteEndPoint;
         public DateTime StartTime { get; private set; }
         public int ProcessedMessagesCountAll => ProcessedMessagesCountOfType.Values.Sum();
-        public ConcurrentDictionary<string, int> ProcessedMessagesCountOfType { get; private set; }
+        public ConcurrentDictionary<string, int> ProcessedMessagesCountOfType { get; private set; } = new();
 
-        protected ClientSession(TopClient client, RrServerHandlerBase messageHandler, ServiceRegistry context)
+        public ClientSession(TopClient client, RrServerHandlerBase messageHandler, ServiceRegistry context)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             MessageHandlers = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));

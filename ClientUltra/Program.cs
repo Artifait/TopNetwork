@@ -13,7 +13,15 @@ namespace ClientUltra
             int port = 5335;
 
             TopClient _client = new();
-            _client.Connect(new System.Net.Sockets.TcpClient(serverIp, port));
+            try
+            {
+                _client.Connect(new System.Net.Sockets.TcpClient(serverIp, port));
+            }
+            catch (Exception ex)
+            {
+                await Console.Out.WriteLineAsync("Сервер не пускает вот что пишит:");
+                Console.WriteLine(ex.ToString());
+            }
 
             RrClientHandlerBase _handlers = new();
             _handlers.AddHandlerForMessageType("Errore",
@@ -30,6 +38,7 @@ namespace ClientUltra
 
 
             RrClient client = new(_client, _handlers);
+            _ = _client.StartListeningAsync();
             Message msg = new()
             {
                 MessageType = "Text"
@@ -39,7 +48,8 @@ namespace ClientUltra
             {
                 if (Console.ReadKey(true).KeyChar != 'a')
                 {
-                    msg.Payload = $"Сообщение №{countMsgSended++}";
+                    msg.Payload = $"{countMsgSended++}";
+                    await Console.Out.WriteLineAsync($"Отправка сообщения №{countMsgSended}");
                     var response = await client.SendMessageWithResponseAsync(msg);
                     Console.WriteLine($"Ответ от сервера:\n{response}");
                 }

@@ -25,7 +25,7 @@ namespace TopNetwork.RequestResponse
             return await DefaultHandler(client, msg);
         }
 
-        public void AddHandlerForMessageType(string type, Func<TopClient, Message, Task<Message?>> handler)
+        public RrServerHandlerBase AddHandlerForMessageType(string type, Func<TopClient, Message, Task<Message?>> handler)
         {
             if (handler == null)
                 throw new ArgumentNullException(nameof(handler));
@@ -37,6 +37,7 @@ namespace TopNetwork.RequestResponse
                 throw new ArgumentException("Тип сообщения не может быть пустым.");
 
             HandlerOfMessageType[type] = handler;
+            return this;
         }
 
         public void Clear() => HandlerOfMessageType.Clear();
