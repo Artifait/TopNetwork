@@ -16,10 +16,18 @@ namespace TopNetwork.Core
         private readonly ConcurrentDictionary<Type, object> _services = new();
 
         // Регистрации сервиса
-        public void Register<TService>(TService service) where TService : class
+        public ServiceRegistry Register<TService>(TService service) where TService : class
         {
-            if (service == null) throw new ArgumentNullException(nameof(service));
+            ArgumentNullException.ThrowIfNull(service);
+
             _services[typeof(TService)] = service;
+            return this;
+        }
+
+        // Проверка, зарегистрирован ли сервис
+        public bool IsRegistered<TService>() where TService : class
+        {
+            return _services.ContainsKey(typeof(TService));
         }
 
         // Получение сервиса с автоматическим разрешением зависимостей
@@ -88,7 +96,7 @@ namespace TopNetwork.Core
             foreach (var property in properties)
             {
                 var dependency = GetService(property.PropertyType) ?? throw new InvalidOperationException(
-                        $"Unable to resolve dependency for property {property.Name} in type {instance.GetType().FullName}");
+                    $"Unable to resolve dependency for property {property.Name} in type {instance.GetType().FullName}");
 
                 property.SetValue(instance, dependency);
             }

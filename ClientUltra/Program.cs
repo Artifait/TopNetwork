@@ -43,7 +43,7 @@ namespace ClientUltra
             await StartVariationOne();
         }
 
-        // Вариант использования 1
+        // Первый способ как ответа от сервера
         public static async Task StartVariationOne()
         {
             Message msg = new() { MessageType = "Text" };
@@ -61,7 +61,7 @@ namespace ClientUltra
             }
         }
 
-        // Вариант использования 2
+        // Второй
         public static async void StartVariationTwo()
         {
             Message msg = new() { MessageType = "Text" };

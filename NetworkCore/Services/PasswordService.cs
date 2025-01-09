@@ -22,6 +22,7 @@ namespace TopNetwork.Services
 
             return Convert.ToBase64String(dst);
         }
+
         public bool VerifyHashedPassword(string hashedPassword, string password)
         {
             byte[] buffer4;

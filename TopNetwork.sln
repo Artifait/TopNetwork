@@ -3,31 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerUltra", "ServerUltra.csproj", "{4E039B72-9200-47AF-9DDB-12251F41C688}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientUltra", "ClientUltra\ClientUltra.csproj", "{C0F342C7-8907-408D-870A-C4DB57D9B7A6}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopNetwork", "NetworkCore\TopNetwork.csproj", "{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}"
-EndProject
 Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4E039B72-9200-47AF-9DDB-12251F41C688}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4E039B72-9200-47AF-9DDB-12251F41C688}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4E039B72-9200-47AF-9DDB-12251F41C688}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4E039B72-9200-47AF-9DDB-12251F41C688}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C0F342C7-8907-408D-870A-C4DB57D9B7A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C0F342C7-8907-408D-870A-C4DB57D9B7A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C0F342C7-8907-408D-870A-C4DB57D9B7A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C0F342C7-8907-408D-870A-C4DB57D9B7A6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A051ECB2-4166-48D3-B40B-E4C232ECFE8D}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection

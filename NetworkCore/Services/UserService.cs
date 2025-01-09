@@ -54,9 +54,10 @@ namespace TopNetwork.Services
             }
         }
 
+        private JsonSerializerOptions _options = new() { WriteIndented = true };
         private void SaveToFile(Dictionary<string, string> users)
         {
-            var json = JsonSerializer.Serialize(users, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(users, _options);
             File.WriteAllText(_filePath, json);
         }
     }

@@ -12,13 +12,14 @@ namespace TopNetwork.RequestResponse
         private readonly TopClient _topClient;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _pendingResponses = new();
 
-        public RrClientHandlerBase Handler { get; private set; }
+        public RrClientHandlerBase? Handler { get; private set; } = null;
+        public ServiceRegistry ServiceRegistry { get; private set; }
         public bool IsActive => _topClient?.IsConnected ?? false;
 
-        public RrClient(TopClient topClient, RrClientHandlerBase handler)
+        public RrClient(TopClient topClient, RrClientHandlerBase? handler = null)
         {
             _topClient = topClient ?? throw new ArgumentNullException(nameof(topClient));
-            Handler = handler ?? throw new ArgumentNullException(nameof(handler));
+            Handler = handler;
 
             _topClient.OnMessageReceived += HandleIncomingMessageAsync;
         }
@@ -78,6 +79,9 @@ namespace TopNetwork.RequestResponse
                 }
                 else
                 {
+                    if (Handler == null)
+                        return;
+
                     // Если нет подписчика или заголовка "ResponseTo", обработать его с помощью обработчика
                     var response = await Handler.HandleMessage(message);
                     if (response != null)
