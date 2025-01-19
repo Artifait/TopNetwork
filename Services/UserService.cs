@@ -26,7 +26,7 @@ namespace TopNetwork.Services
     public interface IRepository<T> where T : class
     {
         void Add(T entity);
-        void Remove(Func<T, bool> predicate);
+        bool Remove(Func<T, bool> predicate);
         T? Get(Func<T, bool> predicate);
         List<T> GetAll();
     }
@@ -62,7 +62,7 @@ namespace TopNetwork.Services
             }
         }
 
-        public void Remove(Func<T, bool> predicate)
+        public bool Remove(Func<T, bool> predicate)
         {
             lock (_locker)
             {
@@ -72,7 +72,9 @@ namespace TopNetwork.Services
                 {
                     entities.Remove(entityToRemove);
                     SaveToFile(entities);
+                    return true;
                 }
+                return false;
             }
         }
 
@@ -116,7 +118,6 @@ namespace TopNetwork.Services
             _repository = repository;
             _passwordService = passwordService;
             _userFactory = userFactory;
-            _userFactory.Invoke(("fdf", "fdfds"));
         }
 
         public UserService<UserT> RegisterUser(string login, string password)
@@ -152,6 +153,9 @@ namespace TopNetwork.Services
         {
             _repository.Remove(u => u.Login == login);
         }
+
+        public UserT? GetUserByLogin(string login)
+            => _repository.Get(user => user.Login == login);
 
         public List<UserT> GetAllUsers()
         {

@@ -101,7 +101,7 @@ namespace TopNetwork.Core
             }
 
             if (!string.IsNullOrWhiteSpace(Payload))
-                sb.AppendLine($"Payload: {Payload}");
+                sb.AppendLine($"Payload: {Payload}\n");
 
             string result = sb.ToString();
 
